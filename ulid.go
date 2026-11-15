@@ -672,9 +672,10 @@ func (m *MonotonicEntropy) random() (inc uint64, err error) {
 			return 0, err
 		}
 
-		// Clear bits in the first byte to increase the probability
-		// that the candidate is < m.inc.
-		m.rand[0] &= uint8(int(1<<msbitLen) - 1)
+		// Clear bits in the most significant byte to increase the probability
+		// that the candidate is < m.inc. The bytes are read as little-endian,
+		// so that is the last one.
+		m.rand[byteLen-1] &= uint8(int(1<<msbitLen) - 1)
 
 		// Convert the read bytes into an uint64 with byteLen
 		// Optimized unrolled loop.

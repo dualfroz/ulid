@@ -673,6 +673,36 @@ func TestMonotonicIncrementRange(t *testing.T) {
 	}
 }
 
+// Regression test: the excess bits were cleared in the low-order byte of a
+// multi-byte draw, so with inc = 256 only increments of 1 and 2 came out.
+func TestMonotonicIncrementRangeMultiByte(t *testing.T) {
+	t.Parallel()
+
+	seed := append([]byte{0x01}, bytes.Repeat([]byte{0x00}, 9)...)
+	draws := []byte{0xff, 0x00}
+	reader := bytes.NewReader(append(seed, draws...))
+
+	entropy := ulid.Monotonic(reader, 256)
+
+	prev, err := ulid.New(123, entropy)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	next, err := ulid.New(123, entropy)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	delta := new(big.Int).Sub(
+		new(big.Int).SetBytes(next.Entropy()),
+		new(big.Int).SetBytes(prev.Entropy()),
+	).Uint64()
+	if want := uint64(256); delta != want {
+		t.Fatalf("delta = %d, want %d", delta, want)
+	}
+}
+
 func TestMonotonicOverflow(t *testing.T) {
 	t.Parallel()
 
